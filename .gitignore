@@ -1,0 +1,21 @@
+# Logs
+node_modules
+dist
+dist-ssr
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build
+build/
+.next/
+out/
+.vercel

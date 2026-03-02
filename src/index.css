@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --color-indigo-950: #1e1b4b;
+  --color-sidebar: #0f172a;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    font-size: 14.4px;
+    /* Tương đương 0.9rem của base 16px */
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #F8FAFC;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* Print styles cho hóa đơn */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #invoice-print,
+  #invoice-print * {
+    visibility: visible;
+  }
+
+  #invoice-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    padding: 4mm;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
