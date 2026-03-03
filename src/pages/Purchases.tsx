@@ -1,17 +1,21 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Truck, Package, Trash2 } from 'lucide-react';
 import { useProductStore } from '@/store/product.store';
 import { usePartnerStore } from '@/store/partner.store';
 import { usePurchaseStore } from '@/store/purchase.store';
+import { useAIStore } from '@/store/ai.store';
 import { usePurchaseTransaction } from '@/hooks/usePurchaseTransaction';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 
 export default function Purchases() {
+    const navigate = useNavigate();
     const products = useProductStore((s) => s.products);
     const partners = usePartnerStore((s) => s.partners);
     const suppliers = partners.filter(p => p.type === 'SUPPLIER');
     const orders = usePurchaseStore((s) => s.orders);
     const { executePurchase } = usePurchaseTransaction();
+    const { lastCommand, executeCommand, globalSearch, setGlobalSearch } = useAIStore();
 
     const [tab, setTab] = useState<'new' | 'history'>('new');
     const [supplierId, setSupplierId] = useState('');
@@ -20,6 +24,14 @@ export default function Purchases() {
     const [search, setSearch] = useState('');
     const [cartItems, setCartItems] = useState<{ productId: string; productName: string; name: string; sku: string; quantity: number; unitPrice: number }[]>([]);
     const [amountPaidStr, setAmountPaidStr] = useState('');
+
+    // Sync with Global AI Search
+    useEffect(() => {
+        if (globalSearch) {
+            setSearch(globalSearch);
+            setGlobalSearch('');
+        }
+    }, [globalSearch, setGlobalSearch]);
 
     const filteredProducts = useMemo(() =>
         products.filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())),

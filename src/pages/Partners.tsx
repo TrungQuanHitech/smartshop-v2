@@ -1,9 +1,151 @@
 import { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Users, Building2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Users, Building2, History as HistoryIcon, FileText, ChevronRight } from 'lucide-react';
 import { usePartnerStore } from '@/store/partner.store';
-import { useCashFlowStore } from '@/store/sale.store';
+import { useSaleStore, useCashFlowStore } from '@/store/sale.store';
+import { usePurchaseStore } from '@/store/purchase.store';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
-import type { Partner, PartnerType } from '@/types';
+import type { Partner, PartnerType, SaleOrder, PurchaseOrder } from '@/types';
+
+function OrderDetailModal({ order, onClose }: { order: SaleOrder | PurchaseOrder; onClose: () => void }) {
+    return (
+        <div className="fixed inset-0 bg-slate-900/40 z-[120] flex items-center justify-center p-4 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-white rounded-[1.5rem] shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300" onClick={(e) => e.stopPropagation()}>
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <FileText size={20} />
+                        </div>
+                        <div>
+                            <div className="font-black text-slate-900 uppercase tracking-tighter text-base">Chi tiết {order.orderNumber}</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(order.createdAt)}</div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-colors">✕</button>
+                </div>
+
+                <div className="p-5 overflow-y-auto max-h-[60vh] no-scrollbar">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+                                <th className="pb-3">Sản phẩm</th>
+                                <th className="pb-3 text-center">SL</th>
+                                <th className="pb-3 text-right">Đơn giá</th>
+                                <th className="pb-3 text-right">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {order.items.map((item: any, idx: number) => (
+                                <tr key={idx} className="text-sm">
+                                    <td className="py-3 pr-2">
+                                        <div className="font-bold text-slate-800 leading-tight">{item.productName}</div>
+                                        <div className="text-[10px] text-slate-400 font-medium">SKU: {item.sku}</div>
+                                    </td>
+                                    <td className="py-3 text-center font-bold text-slate-600">x{item.quantity}</td>
+                                    <td className="py-3 text-right text-slate-500">{formatCurrency(item.unitPrice)}</td>
+                                    <td className="py-3 text-right font-black text-slate-900">{formatCurrency(item.subtotal)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <div className="mt-5 pt-5 border-t-2 border-dashed border-slate-100 space-y-2">
+                        <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            <span>Tạm tính:</span>
+                            <span>{formatCurrency(order.subtotal)}</span>
+                        </div>
+                        {(order as SaleOrder).vatAmount > 0 && (
+                            <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                <span>VAT ({(order as SaleOrder).vatPercent}%):</span>
+                                <span>{formatCurrency((order as SaleOrder).vatAmount)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center pt-2">
+                            <span className="font-black text-slate-900 uppercase tracking-tighter">Tổng thanh toán:</span>
+                            <span className="text-xl font-black text-indigo-700">{formatCurrency(order.totalAmount)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                    <div className="flex-1 text-[10px] font-bold text-slate-400 uppercase leading-snug">
+                        Thanh toán bằng: <span className="text-slate-700">{order.paymentMethod}</span><br />
+                        Trạng thái: <span className={order.status === 'COMPLETED' ? 'text-emerald-600' : 'text-rose-600'}>{order.status}</span>
+                    </div>
+                    <button onClick={onClose} className="px-6 py-2 bg-slate-900 text-white rounded-xl font-black uppercase text-[10px] tracking-widest">Đóng</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PartnerHistoryModal({ partner, onClose }: { partner: Partner; onClose: () => void }) {
+    const saleOrders = useSaleStore((s) => s.orders);
+    const purchaseOrders = usePurchaseStore((s) => s.orders);
+
+    const [selectedOrder, setSelectedOrder] = useState<SaleOrder | PurchaseOrder | null>(null);
+
+    const history = partner.type === 'CUSTOMER'
+        ? saleOrders.filter(o => o.customerId === partner.id)
+        : purchaseOrders.filter(o => o.supplierId === partner.id);
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div>
+                        <h2 className="font-black text-slate-900 uppercase tracking-tighter text-xl">Lịch sử giao dịch</h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{partner.name}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">✕</button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
+                    {history.length === 0 ? (
+                        <div className="py-20 text-center opacity-20 grayscale flex flex-col items-center gap-4">
+                            <HistoryIcon size={64} strokeWidth={1} />
+                            <p className="font-black uppercase tracking-widest text-xs">Chưa có lịch sử giao dịch</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {history.map((order: any) => (
+                                <button
+                                    key={order.id}
+                                    onClick={() => setSelectedOrder(order)}
+                                    className="w-full group p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:shadow-md transition-all flex items-center justify-between text-left"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                            <FileText size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="font-black text-slate-700 uppercase tracking-tight text-sm">{order.orderNumber}</div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(order.createdAt)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-black text-indigo-700 text-sm">{formatCurrency(order.totalAmount)}</div>
+                                        <div className={cn(
+                                            "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md inline-block mt-1",
+                                            order.status === 'COMPLETED' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                                        )}>
+                                            {order.status === 'COMPLETED' ? 'Thành công' : 'Đã hủy'}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <button onClick={onClose} className="px-8 py-3 rounded-xl bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all">Đóng</button>
+                </div>
+            </div>
+
+            {selectedOrder && <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />}
+        </div>
+    );
+}
 
 function PartnerModal({ partner, onClose }: { partner?: Partner; onClose: () => void }) {
     const { addPartner, updatePartner } = usePartnerStore();
@@ -75,6 +217,7 @@ export default function Partners() {
     const [editingPartner, setEditingPartner] = useState<Partner | undefined>();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [debtModal, setDebtModal] = useState<{ partner: Partner } | null>(null);
+    const [historyPartner, setHistoryPartner] = useState<Partner | null>(null);
     const [debtAmount, setDebtAmount] = useState('');
 
     const filtered = partners.filter((p) => {
@@ -145,8 +288,13 @@ export default function Partners() {
                                                 {p.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <div className="font-medium text-slate-800">{p.name}</div>
-                                                {p.notes && <div className="text-xs text-slate-400">{p.notes}</div>}
+                                                <button
+                                                    onClick={() => setHistoryPartner(p)}
+                                                    className="font-black text-slate-700 uppercase tracking-tight hover:text-indigo-600 transition-colors text-left"
+                                                >
+                                                    {p.name}
+                                                </button>
+                                                {p.notes && <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight opacity-70">{p.notes}</div>}
                                             </div>
                                         </div>
                                     </td>
@@ -210,6 +358,7 @@ export default function Partners() {
             )}
 
             {isModalOpen && <PartnerModal partner={editingPartner} onClose={() => setIsModalOpen(false)} />}
+            {historyPartner && <PartnerHistoryModal partner={historyPartner} onClose={() => setHistoryPartner(null)} />}
         </div>
     );
 }

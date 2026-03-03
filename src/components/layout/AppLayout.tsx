@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { AIChat } from '../ai/AIChat';
+import { AICommandExecutor } from '../ai/AICommandExecutor';
 
 export function AppLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden">
+            {/* AI Global Logic */}
+            <AICommandExecutor />
+
             {/* Sidebar */}
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -20,6 +25,9 @@ export function AppLayout() {
                     </div>
                 </main>
             </div>
+
+            {/* AI Assistant */}
+            <AIChat />
         </div>
     );
 }

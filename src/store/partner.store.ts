@@ -40,6 +40,7 @@ interface PartnerState {
     getSuppliers: () => Partner[];
     getDebtors: () => Partner[]; // Khách nợ mình (totalDebt > 0)
     getCreditors: () => Partner[]; // Mình nợ NCC (totalDebt < 0)
+    reset: () => void;
 }
 
 export const usePartnerStore = create<PartnerState>()(
@@ -73,6 +74,7 @@ export const usePartnerStore = create<PartnerState>()(
             getSuppliers: () => get().partners.filter((p) => p.type === 'SUPPLIER'),
             getDebtors: () => get().partners.filter((p) => p.totalDebt > 0),
             getCreditors: () => get().partners.filter((p) => p.totalDebt < 0),
+            reset: () => set({ partners: [] }),
         }),
         { name: 'smartshop-partners' }
     )

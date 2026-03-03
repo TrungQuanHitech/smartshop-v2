@@ -89,6 +89,7 @@ interface ProductState {
     deleteCategory: (id: string) => void;
     getProductById: (id: string) => Product | undefined;
     getLowStockProducts: () => Product[];
+    reset: () => void;
 }
 
 export const useProductStore = create<ProductState>()(
@@ -136,6 +137,8 @@ export const useProductStore = create<ProductState>()(
             getProductById: (id) => get().products.find((p) => p.id === id),
 
             getLowStockProducts: () => get().products.filter((p) => p.inStock <= p.lowStockAlert),
+
+            reset: () => set({ products: [], categories: SEED_CATEGORIES }),
         }),
         { name: 'smartshop-products' }
     )

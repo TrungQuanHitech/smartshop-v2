@@ -1,29 +1,12 @@
 import { create } from 'zustand';
-import type { CartItem, Partner } from '@/types';
-
-type PaymentMethod = 'Cash' | 'Card' | 'Transfer' | 'Other';
-
-export interface Order {
-    id: string;
-    orderNumber: string;
-    date: string;
-    customer: Partner | null;
-    items: CartItem[];
-    subtotal: number;
-    discountTotal: number;
-    vat: number;
-    finalTotal: number;
-    paymentMethod: PaymentMethod;
-    amountPaid: number;
-    status: 'COMPLETED' | 'CANCELLED';
-}
+import type { CartItem, Partner, SaleOrder, PaymentMethod as AppPaymentMethod } from '@/types';
 
 interface PosState {
     cart: CartItem[];
     customer: Partner | null;
     discountTotal: number;
     vatPercent: number;
-    orders: Order[];
+    orders: SaleOrder[];
 
     addToCart: (item: Omit<CartItem, 'quantity' | 'discount' | 'subtotal'>) => void;
     removeFromCart: (productId: string) => void;
@@ -32,7 +15,7 @@ interface PosState {
     setCustomer: (customer: Partner | null) => void;
     setDiscountTotal: (amt: number) => void;
     setVatPercent: (percent: number) => void;
-    addOrder: (order: Order) => void;
+    addOrder: (order: SaleOrder) => void;
     clearCart: () => void;
     getSubtotal: () => number;
     getVatAmount: () => number;

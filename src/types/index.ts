@@ -201,6 +201,7 @@ export interface AppSettings {
     // Google Sheets
     googleSheetId: string;
     googleAppsScriptUrl: string;
+    googleClientId: string;
 }
 
 // ---------- CART (POS SESSION) ----------

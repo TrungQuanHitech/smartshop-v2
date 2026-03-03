@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     // Google Sheets
     googleSheetId: '',
     googleAppsScriptUrl: '',
+    googleClientId: '',
 };
 
 interface SettingsState {

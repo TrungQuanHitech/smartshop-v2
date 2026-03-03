@@ -36,31 +36,41 @@ export default function Reports() {
             const d = new Date();
             d.setMonth(d.getMonth() - i);
             const m = d.getMonth(); const y = d.getFullYear();
-            const rev = completedOrders.filter((o) => { const od = new Date(o.createdAt); return od.getMonth() === m && od.getFullYear() === y; }).reduce((sum, o) => sum + o.amountPaid, 0);
-            const cost = completedOrders.filter((o) => { const od = new Date(o.createdAt); return od.getMonth() === m && od.getFullYear() === y; }).reduce((sum, o) => sum + o.items.reduce((s, i) => { const p = products.find((p) => p.id === i.productId); return s + (p?.importPrice || 0) * i.quantity; }, 0), 0);
+            const monthOrders = completedOrders.filter((o) => { const od = new Date(o.createdAt); return od.getMonth() === m && od.getFullYear() === y; });
+            const rev = monthOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+            const cost = monthOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => { const p = products.find((p) => p.id === i.productId); return s + (p?.importPrice || 0) * i.quantity; }, 0), 0);
             months.push({ month: `T${m + 1}/${y}`, revenue: Math.round(rev / 1_000_000), profit: Math.round((rev - cost) / 1_000_000) });
         }
         return months;
     }, [orders, products]);
 
-    const totalRevenue = completedOrders.reduce((sum, o) => sum + o.amountPaid, 0);
+    // Doanh thu gộp = Tổng tiền các đơn hàng (bao gồm cả nợ chưa thu)
+    const totalRevenue = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
     const totalDebt = completedOrders.reduce((sum, o) => sum + o.debtAmount, 0);
     const totalCogs = completedOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => { const p = products.find((p) => p.id === i.productId); return s + (p?.importPrice || 0) * i.quantity; }, 0), 0);
     const grossProfit = totalRevenue - totalCogs;
+
+    // Chi phí vận hành (không tính chi từ nhập hàng, chỉ tính chi tiêu vận hành thực tế)
+    const operatingExpense = transactions
+        .filter(t => t.type === 'EXPENSE' && t.category !== 'PURCHASE')
+        .reduce((sum, t) => sum + t.amount, 0);
+    const netProfit = grossProfit - operatingExpense;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
     return (
         <div className="space-y-6 animate-in">
             {/* Summary */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Tổng Doanh Thu', value: formatCurrency(totalRevenue), color: 'text-indigo-700' },
-                    { label: 'Lợi Nhuận Gộp', value: formatCurrency(grossProfit), color: 'text-emerald-700' },
-                    { label: 'Tồn Quỹ', value: formatCurrency(getBalance()), color: 'text-blue-700' },
-                    { label: 'Phải Thu', value: formatCurrency(totalDebt), color: 'text-orange-600' },
+                    { label: 'Tổng Doanh Thu', value: formatCurrency(totalRevenue), color: 'text-indigo-700', sub: `Thu được: ${formatCurrency(totalRevenue - totalDebt)}` },
+                    { label: 'Lợi Nhuận Gộp', value: formatCurrency(grossProfit), color: 'text-emerald-700', sub: `COGS: ${formatCurrency(totalCogs)}` },
+                    { label: 'Lợi Nhuận Ròng', value: formatCurrency(netProfit), color: netProfit >= 0 ? 'text-violet-700' : 'text-red-600', sub: `Biên LN: ${profitMargin.toFixed(1)}%` },
+                    { label: 'Tồn Quỹ', value: formatCurrency(getBalance()), color: 'text-blue-700', sub: `Phải thu: ${formatCurrency(totalDebt)}` },
                 ].map((kpi) => (
                     <div key={kpi.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
                         <p className="text-xs font-semibold text-slate-500 uppercase">{kpi.label}</p>
                         <p className={`text-xl font-black mt-1 ${kpi.color}`}>{kpi.value}</p>
+                        {kpi.sub && <p className="text-xs text-slate-400 mt-0.5">{kpi.sub}</p>}
                     </div>
                 ))}
             </div>

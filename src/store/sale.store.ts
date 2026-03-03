@@ -31,6 +31,7 @@ interface SaleState {
     getTodayRevenue: () => number;
     getMonthRevenue: () => number;
     getTotalDebt: () => number;
+    reset: () => void;
 }
 
 export const useSaleStore = create<SaleState>()(
@@ -75,6 +76,8 @@ export const useSaleStore = create<SaleState>()(
 
             getTotalDebt: () =>
                 get().orders.filter((o) => o.status === 'COMPLETED').reduce((sum, o) => sum + o.debtAmount, 0),
+
+            reset: () => set({ orders: [] }),
         }),
         { name: 'smartshop-sales' }
     )
@@ -109,6 +112,7 @@ interface CashFlowState {
     getBalance: () => number;
     getMonthIncome: () => number;
     getMonthExpense: () => number;
+    reset: () => void;
 }
 
 export const useCashFlowStore = create<CashFlowState>()(
@@ -151,6 +155,8 @@ export const useCashFlowStore = create<CashFlowState>()(
                     })
                     .reduce((sum, t) => sum + t.amount, 0);
             },
+
+            reset: () => set({ transactions: [] }),
         }),
         { name: 'smartshop-cashflow' }
     )

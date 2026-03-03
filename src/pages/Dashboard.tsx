@@ -76,14 +76,32 @@ export default function Dashboard() {
 
     const recentOrders = [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
 
+    // Lợi nhuận gộp = Doanh thu - Giá vốn
+    const grossProfit = useMemo(() => {
+        const completedOrders = orders.filter(o => o.status === 'COMPLETED');
+        const revenue = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+        const cogs = completedOrders.reduce((sum, o) => sum + o.items.reduce((s, item) => {
+            const p = products.find(p => p.id === item.productId);
+            return s + (p?.importPrice || 0) * item.quantity;
+        }, 0), 0);
+        return revenue - cogs;
+    }, [orders, products]);
+
+    const profitMargin = useMemo(() => {
+        const completedOrders = orders.filter(o => o.status === 'COMPLETED');
+        const revenue = completedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+        if (revenue === 0) return 0;
+        return (grossProfit / revenue) * 100;
+    }, [orders, grossProfit]);
+
     return (
         <div className="space-y-6 animate-in">
             {/* KPI Row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard title="Doanh Thu Hôm Nay" value={formatCurrency(getTodayRevenue())} sub="Đã thanh toán" icon={TrendingUp} color="bg-indigo-100 text-indigo-600" />
-                <KpiCard title="Doanh Thu Tháng" value={formatCurrency(getMonthRevenue())} sub={`${orders.filter(o => o.status === 'COMPLETED').length} đơn`} icon={ShoppingCart} color="bg-emerald-100 text-emerald-600" />
+                <KpiCard title="Doanh Thu Tháng" value={formatCurrency(getMonthRevenue())} sub={`${orders.filter(o => o.status === 'COMPLETED').length} đơn hoàn tất`} icon={ShoppingCart} color="bg-emerald-100 text-emerald-600" />
+                <KpiCard title="Lợi Nhuận Gộp" value={formatCurrency(grossProfit)} sub={`Biên lợi nhuận: ${profitMargin.toFixed(1)}%`} icon={ArrowUpRight} color="bg-violet-100 text-violet-600" />
                 <KpiCard title="Tồn Quỹ" value={formatCurrency(getBalance())} sub={`Thu: ${formatCurrency(getMonthIncome())} / Chi: ${formatCurrency(getMonthExpense())}`} icon={Wallet} color="bg-blue-100 text-blue-600" />
-                <KpiCard title="Phải Thu KH" value={formatCurrency(totalCustomerDebt)} sub={`${debtors.length} khách đang nợ`} icon={CreditCard} color="bg-orange-100 text-orange-600" />
             </div>
 
             {/* Alert cảnh báo */}

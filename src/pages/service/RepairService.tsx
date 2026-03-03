@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Wrench, Search, Edit2 } from 'lucide-react';
 import { useServiceStore } from '@/store/service.store';
 import { usePartnerStore } from '@/store/partner.store';
+import { useCashFlowStore } from '@/store/sale.store';
 import { formatCurrency, formatDate, getRepairStatusLabel, getRepairStatusColor, cn } from '@/lib/utils';
 import type { RepairStatus, RepairTicket } from '@/types';
 
@@ -10,6 +11,7 @@ const STATUSES: RepairStatus[] = ['RECEIVED', 'DIAGNOSING', 'REPAIRING', 'WAITIN
 function RepairModal({ ticket, onClose }: { ticket?: RepairTicket; onClose: () => void }) {
     const { addRepairTicket, updateRepairTicket } = useServiceStore();
     const customers = usePartnerStore((s) => s.getCustomers());
+    const { addTransaction } = useCashFlowStore();
     const [form, setForm] = useState({
         customerId: ticket?.customerId || '',
         customerName: ticket?.customerName || '',
@@ -33,8 +35,23 @@ function RepairModal({ ticket, onClose }: { ticket?: RepairTicket; onClose: () =
 
     const handleSubmit = () => {
         if (!form.customerName || !form.deviceName || !form.problemDescription) return;
+        const isReturning = ticket && form.status === 'RETURNED' && ticket.status !== 'RETURNED';
+
         if (ticket) updateRepairTicket(ticket.id, { ...form, returnedAt: form.status === 'RETURNED' ? new Date().toISOString() : ticket.returnedAt });
         else addRepairTicket({ ...form, receivedAt: form.receivedAt || new Date().toISOString() });
+
+        // Liên kết Sổ quỹ: Khi trả máy có chi phí thực tế -> tạo giao dịch THU
+        if (isReturning && form.finalCost && form.finalCost > 0) {
+            const ticketNum = ticket?.ticketNumber || '';
+            addTransaction({
+                type: 'INCOME',
+                amount: form.finalCost,
+                title: `Thu tiền sửa chữa ${ticketNum} - ${form.customerName}`,
+                category: 'SERVICE',
+                paymentMethod: 'CASH',
+                createdAt: new Date().toISOString(),
+            });
+        }
         onClose();
     };
 

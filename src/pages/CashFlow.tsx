@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Wallet, ArrowDownRight, ArrowUpRight, Trash2, Search } from 'lucide-react';
 import { useCashFlowStore } from '@/store/sale.store';
+import { useAIStore } from '@/store/ai.store';
 import { formatCurrency, formatDateTime, cn } from '@/lib/utils';
 import type { TransactionType } from '@/types';
 
@@ -62,10 +63,40 @@ function TxModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function CashFlow() {
-    const { transactions, deleteTransaction, getBalance, getMonthIncome, getMonthExpense } = useCashFlowStore();
+    const { transactions, addTransaction, deleteTransaction, getBalance, getMonthIncome, getMonthExpense } = useCashFlowStore();
+    const { lastCommand, executeCommand, globalSearch, setGlobalSearch } = useAIStore();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState<'all' | 'INCOME' | 'EXPENSE'>('all');
+
+    // Sync with Global AI Search
+    useEffect(() => {
+        if (globalSearch) {
+            setSearch(globalSearch);
+            setGlobalSearch('');
+        }
+    }, [globalSearch, setGlobalSearch]);
+
+    // AI Command Executor
+    useEffect(() => {
+        if (!lastCommand) return;
+
+        if (lastCommand.type === 'ADD_TRANSACTION') {
+            const { title, amount, transactionType, category } = lastCommand as any;
+            if (title && amount > 0) {
+                addTransaction({
+                    title,
+                    amount,
+                    type: transactionType || 'EXPENSE',
+                    category: category || 'OTHER',
+                    paymentMethod: 'CASH',
+                    createdAt: new Date().toISOString()
+                });
+            }
+            executeCommand(lastCommand);
+        }
+    }, [lastCommand, addTransaction, executeCommand]);
 
     const filtered = transactions.filter((t) => {
         const matchType = typeFilter === 'all' || t.type === typeFilter;

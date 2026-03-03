@@ -17,6 +17,7 @@ interface ServiceState {
     addRentalContract: (data: Omit<RentalContract, 'id' | 'contractNumber' | 'createdAt'>) => RentalContract;
     updateRentalContract: (id: string, updates: Partial<RentalContract>) => void;
     addCounterLog: (log: Omit<RentalCounterLog, 'id' | 'createdAt'>) => RentalCounterLog;
+    reset: () => void;
 }
 
 export const useServiceStore = create<ServiceState>()(
@@ -72,6 +73,8 @@ export const useServiceStore = create<ServiceState>()(
                 set((s) => ({ counterLogs: [log, ...s.counterLogs] }));
                 return log;
             },
+
+            reset: () => set({ repairTickets: [], rentalContracts: [], counterLogs: [] }),
         }),
         { name: 'smartshop-service' }
     )

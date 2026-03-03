@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Plus, FileText, Calculator, Edit2 } from 'lucide-react';
 import { useServiceStore } from '@/store/service.store';
+import { useCashFlowStore } from '@/store/sale.store';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import type { RentalContract } from '@/types';
 
 function CounterModal({ contract, onClose }: { contract: RentalContract; onClose: () => void }) {
     const { addCounterLog, updateRentalContract } = useServiceStore();
+    const { addTransaction } = useCashFlowStore();
     const [mono, setMono] = useState('');
     const [color, setColor] = useState('');
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -22,6 +24,18 @@ function CounterModal({ contract, onClose }: { contract: RentalContract; onClose
         if (!mono) return;
         addCounterLog({ contractId: contract.id, date, counterMono, counterColor, usedMono, usedColor, excessMono, excessColor, chargeAmount: charge });
         updateRentalContract(contract.id, { lastCounterMono: counterMono, lastCounterColor: counterColor, lastCounterDate: date });
+
+        // Liên kết Sổ quỹ: Tạo giao dịch THU tiền cho thuê máy
+        if (charge > 0) {
+            addTransaction({
+                type: 'INCOME',
+                amount: charge,
+                title: `Thu tiền cho thuê ${contract.machineModel} - ${contract.customerName}`,
+                category: 'SERVICE',
+                paymentMethod: 'CASH',
+                createdAt: new Date().toISOString(),
+            });
+        }
         onClose();
     };
 
