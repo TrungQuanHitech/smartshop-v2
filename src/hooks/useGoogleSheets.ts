@@ -258,7 +258,7 @@ export function useGoogleSheets() {
         await sheetsRequest('clear', "'🛠 SERVICES'!A:Z", undefined, sheetId);
         await sheetsRequest('PUT', "'🛠 SERVICES'!A1", [...repairHeader, ...repairRows, ...rentalHeader, ...rentalRows], sheetId);
         addLog(`✅ Dịch vụ: ${repairTickets.length} phiếu sửa, ${rentalContracts.length} hợp đồng thuê`);
-    }, [repairTickets, rentalContracts, counterLogs, sheetsRequest, addLog]);
+    }, [repairTickets, rentalContracts, sheetsRequest, addLog]);
 
     const syncDashboard = useCallback(async (sheetId: string) => {
         addLog('📊 Đang tạo Dashboard...');
@@ -296,6 +296,7 @@ export function useGoogleSheets() {
     }, [saleOrders, products, partners, transactions, sheetsRequest, addLog]);
 
     const syncSystemSheet = useCallback(async (sheetId: string) => {
+        const s = useSettingsStore.getState().settings;
         const catData = [
             ['⚙️ SYSTEM CONFIG - Danh mục & Cấu hình'],
             [],
@@ -304,13 +305,49 @@ export function useGoogleSheets() {
             ...categories.map(c => [c.id, c.name]),
             [],
             ['CẤU HÌNH HỆ THỐNG'],
-            ['Tên công ty', useSettingsStore.getState().settings.companyName],
-            ['Địa chỉ', useSettingsStore.getState().settings.companyAddress],
-            ['Điện thoại', useSettingsStore.getState().settings.companyPhone],
+            ['KEY', 'VALUE', 'DESCRIPTION'],
+            ['companyName', s.companyName, 'Tên công ty'],
+            ['companyAddress', s.companyAddress, 'Địa chỉ'],
+            ['companyPhone', s.companyPhone, 'Điện thoại'],
+            ['companyEmail', s.companyEmail || '', 'Email'],
+            ['bankName', s.bankName, 'Tên ngân hàng'],
+            ['bankBin', s.bankBin, 'Mã ngân hàng (BIN)'],
+            ['bankAccountNumber', s.bankAccountNumber, 'Số tài khoản'],
+            ['bankAccountName', s.bankAccountName, 'Tên chủ tài khoản'],
+            ['groqApiKey', s.groqApiKey, 'Groq API Key'],
+            ['groqModel', s.groqModel, 'Groq Model'],
+            ['telegramBotToken', s.telegramBotToken, 'Telegram Bot Token'],
+            ['telegramChatId', s.telegramChatId, 'Telegram Chat ID'],
+            ['vatPercent', s.vatPercent, 'VAT (%)'],
+            ['googleClientId', s.googleClientId, 'Google Client ID'],
         ];
         await sheetsRequest('clear', "'⚙️ SYSTEM'!A:Z", undefined, sheetId);
         await sheetsRequest('PUT', "'⚙️ SYSTEM'!A1", catData, sheetId);
     }, [categories, sheetsRequest]);
+
+    const loadSettingsFromSheet = useCallback(async () => {
+        if (!user || !settings.googleSheetId) return;
+        setSyncing(true);
+        addLog('📥 Đang tải cài đặt từ Google Sheets...');
+        try {
+            const data = await sheetsRequest('GET', "'⚙️ SYSTEM'!A8:B30");
+            if (data.values) {
+                const updates: any = {};
+                data.values.forEach((row: string[]) => {
+                    const [key, val] = row;
+                    if (key && val !== undefined) {
+                        updates[key] = key === 'vatPercent' ? parseFloat(val) : val;
+                    }
+                });
+                useSettingsStore.getState().updateSettings(updates);
+                addLog('✅ Đã khôi phục cài đặt thành công!');
+            }
+        } catch (err: any) {
+            addLog(`❌ Lỗi tải cài đặt: ${err.message}`);
+        } finally {
+            setSyncing(false);
+        }
+    }, [user, settings.googleSheetId, sheetsRequest, addLog, setSyncing]);
 
     // Hàm đồng bộ toàn bộ
     const syncAll = useCallback(async (targetSheetId?: string) => {
@@ -359,6 +396,7 @@ export function useGoogleSheets() {
 
     return {
         syncAll,
+        loadSettingsFromSheet,
         isSyncing,
         lastSyncAt,
     };

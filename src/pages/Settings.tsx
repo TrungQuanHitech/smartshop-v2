@@ -285,6 +285,24 @@ export default function Settings() {
                 <Field label="Chat ID" value={form.telegramChatId} onChange={set('telegramChatId')} placeholder="-100xxxxxxxxxx" hint="Lấy Chat ID từ bot @userinfobot" />
             </Section>
 
+            <Section title="💾 Sao lưu & Khôi phục Cấu hình" description="Lưu trữ cài đặt của bạn lên Google Sheets để sử dụng trên thiết bị khác">
+                <div className="md:col-span-2 flex flex-wrap gap-3">
+                    <button
+                        onClick={() => {
+                            const { loadSettingsFromSheet } = useGoogleSheets();
+                            loadSettingsFromSheet();
+                        }}
+                        className="flex-1 py-3 bg-white border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                        <Database className="w-4 h-4 text-indigo-600" />
+                        Khôi phục từ Google Sheets
+                    </button>
+                </div>
+                <p className="md:col-span-2 text-xs text-slate-400 italic">
+                    * Lưu ý: Khi nhấn "Đồng bộ Toàn bộ Dữ liệu" ở dưới, mọi cài đặt hiện tại sẽ được lưu vào tab ⚙️ SYSTEM của Google Sheets.
+                </p>
+            </Section>
+
             {/* Google Sync Panel - Standalone, full-width */}
             <GoogleSyncPanel />
 
